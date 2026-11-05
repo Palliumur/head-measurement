@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f8f8"><meta name="description" content="头部测量点、测量项目与行业需求的三维交互对照。">
+  <title>头部测量</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='10' ry='13' fill='%23eceef1'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4' fill='none' stroke='%235e83c6' stroke-width='1.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+<main class="workspace">
+  <section class="stage" aria-label="可旋转的三维头部测量示意">
+    <div class="stage-top"><span id="scene-summary">头部测量</span><div class="label-options"><button id="label-toggle" aria-pressed="true">名称</button><button id="all-labels" aria-pressed="false">全部名称</button></div></div>
+    <div id="scene" tabindex="0" role="img" aria-label="三维头模。拖动旋转，滚轮缩放；方向键旋转，加减号缩放，Home复位。测量点也可在右侧用键盘选择。"></div>
+    <svg id="leaders" aria-hidden="true"></svg><div id="labels"></div><div id="point-targets"></div>
+    <div id="scene-legend" class="scene-legend" aria-label="路径颜色图例"></div>
+    <div id="loading" class="loading" role="status"><span class="loader"></span><span id="loading-text">正在载入头模</span><button id="retry" hidden>重新载入</button></div>
+    <div class="stage-bottom"><div class="view-controls" role="group" aria-label="查看方向"><button data-view="front">正面</button><button data-view="side">侧面</button><button data-view="back">背面</button><button data-view="top">顶部</button><span></span><button data-view="reset" aria-label="复位视角">↺</button></div><span class="gesture-hint" id="gesture-hint">拖动旋转 · 滚轮缩放</span></div>
+  </section>
+  <aside class="measure-panel" aria-label="测量选择">
+    <nav class="mode-tabs" aria-label="选择模式"><button data-mode="points" aria-pressed="false">测量点</button><button data-mode="industries" aria-pressed="true">行业对比</button></nav>
+    <div class="panel-scroll">
+      <section id="points-pane" hidden>
+        <div class="section-heading"><span>测量点 <small>29 类</small></span><button id="preset" class="text-button">头戴设备方案</button></div>
+        <input id="point-search" class="search" type="search" placeholder="查找测量点 / 代号" aria-label="查找测量点">
+        <div id="point-list" class="point-list"></div>
+        <div class="selection-summary" id="point-summary" aria-live="polite"></div>
+      </section>
+      <section id="industries-pane"><div class="section-heading"><span>行业 <small>可多选</small></span><div class="ear-side" role="group" aria-label="单侧项目显示侧"><button data-side="R" aria-pressed="true">右侧</button><button data-side="L" aria-pressed="false">左侧</button></div></div><div id="industry-list"></div></section>
+      <section class="projects-section">
+        <div class="section-heading"><span id="projects-title">测量项目</span><span id="project-count" class="count"></span></div>
+        <div id="compare-filters" class="filter-tabs" role="group" aria-label="对比项目范围"><button data-filter="all" aria-pressed="true">全部</button><button data-filter="common" aria-pressed="false">共同</button><button data-filter="difference" aria-pressed="false">差异</button></div>
+        <input id="project-search" class="search" type="search" placeholder="查找项目" aria-label="查找测量项目" hidden>
+        <div id="project-list"></div><p id="empty-message" class="empty" hidden></p>
+      </section>
+    </div>
+    <div class="detail" aria-live="polite"><button id="detail-name" class="detail-name" title="查看测量说明"></button><div id="detail-type" class="detail-type"></div><p id="detail-route"></p><p id="detail-owners" class="detail-owners"></p></div>
+    <div class="panel-bottom"><button id="clear" class="text-button">清空选择</button><button id="info-open" class="text-button">测量说明 ↗</button></div>
+  </aside>
+  <span id="sr-status" class="sr-only" role="status"></span>
+</main>
+<dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h1 id="info-title">测量说明</h1><button id="info-close" aria-label="关闭测量说明">×</button></div><div class="dialog-scroll"><select id="method-select" aria-label="查看项目说明"></select><div class="method-heading"><h2 id="method-name"></h2><span id="method-tool"></span></div><p id="method-definition"></p><div id="method-points" class="method-points"></div><p id="method-note" class="method-note"></p><p id="method-source" class="method-source"></p><details class="reference"><summary>点位与行业依据</summary><p>测量点与项目编号对应 GB/T 2428—2024 图 A.1、A.2。行业与项目对应用户提供的《各行业头部测量项目对照表》。行业表不含“必测／建议”级别，原头戴设备方案单独保留。</p><p>头围沿用原项目指定的 WS/T 424—2013 操作定义。行业表未区分品牌之间的测量方法差异。</p></details><p class="registration-note">点位与路径为提供的 STL 上的人工示意配准，左右以受测者为准。发缘、瞳孔与需触诊的标志应在实际采集时确认。垂直／投影尺寸按当前头模姿态示意，真人测量需按眼耳平面定位。本页不输出受试者实测数值。</p></div></dialog>
+<script type="module" src="./app.js"></script>
+</body></html>
