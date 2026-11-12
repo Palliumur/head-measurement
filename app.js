@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { catalog, factoryCrosswalk, originalPreset, resolvePoints } from './catalog.js?v=20261110-wig';
 import { setupPosition } from './position.js?v=20261110-wig';
+import { setupPressure } from './pressure.js?v=pressure-1';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const stage=$('.stage'),host=$('#scene'),labelsHost=$('#labels'),leaders=$('#leaders');
@@ -25,8 +26,8 @@ const dimensionLayer=$('#dimensions');
 const vec=p=>new THREE.Vector3(...p),reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const chosenPoints=new Set(),suppressed=new Set();
 const groups=new Map(),pointGroups=new Map(),annotations=new Map(),projectRows=new Map(),pointRows=new Map();
-let mode='industries',currentCase,industryBasis='folder',industrySide='R',active=null,focused=false,showLabels=true,allLabels=false,hovered=null;
-let data,renderer,camera,controls,scene,mesh,tween=null,dirty=true,frameId,drawn=new Set(),preset=false;
+let mode=location.hash==='#pressure'?'pressure':'industries',currentCase,industryBasis='folder',industrySide='R',active=null,focused=false,showLabels=true,allLabels=false,hovered=null;
+let data,renderer,camera,controls,scene,mesh,pressure,tween=null,dirty=true,frameId,drawn=new Set(),preset=false;
 let pointQuery='';
 
 function route(item){
@@ -129,16 +130,37 @@ function updateChosenPoints(){
 
 function update(){
   if(!data)return;
+  const showingPressure=mode==='pressure';
+  $$('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+  stage.classList.toggle('point-mode',mode==='points');
+  stage.classList.toggle('pressure-mode',showingPressure);
+  $('#pressure-pane').hidden=!showingPressure;
+  $('.projects-section').hidden=showingPressure;
+  $('.panel-bottom').hidden=showingPressure;
+  $('.label-options').hidden=showingPressure;
+  $('#points-pane').hidden=mode!=='points';
+  $('#industries-pane').hidden=mode!=='industries';
+  $('#case-tools').hidden=mode!=='industries';
+  $('#score-method').hidden=mode!=='industries';
+  pressure?.setActive(showingPressure);
+  if(showingPressure){
+    drawn.clear();
+    for(const variants of groups.values())for(const group of variants)group.visible=false;
+    for(const group of pointGroups.values())group.visible=false;
+    $('.detail').hidden=true;
+    tooltip.hidden=true;
+    host.classList.remove('point-hover');
+    $('#scene-summary').textContent='压力不适阈值';
+    $('#gesture-hint').textContent='拖动旋转 · 滚轮缩放';
+    $('#sr-status').textContent='压力敏感度模式';
+    dirty=true;
+    return;
+  }
   drawn=new Set(Object.keys(catalog).filter(id=>{
     if(mode==='points')return !catalog[id].caseOnly&&matches(catalog[id])&&(!preset||originalPreset.includes(id));
     return visibleProject(id)&&!suppressed.has(id);
   }));
   if(!drawn.has(active)){active=[...drawn].at(-1)||null;focused=false;}
-  $$('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
-  stage.classList.toggle('point-mode',mode==='points');
-  $('#points-pane').hidden=mode!=='points';$('#industries-pane').hidden=mode!=='industries';
-  $('#case-tools').hidden=mode!=='industries';
-  $('#score-method').hidden=mode!=='industries';
   $('#industry-basis').hidden=mode!=='industries';
   const basisNote=$('#measurement-basis-note');
   basisNote.hidden=mode!=='industries';
@@ -244,8 +266,14 @@ const position=setupPosition((scene, label, name, featured, {scoreSummary,reason
 });
 function switchMode(next){
   if(mode===next)return;
+  const leavingPressure=mode==='pressure';
   mode=next;
   hovered=null;
+  if(leavingPressure||next==='pressure'){
+    const url=new URL(location.href);
+    url.hash=next==='pressure'?'pressure':'';
+    history.replaceState(null,'',url);
+  }
   if(mode==='industries'){
     resetIndustryMeasurements();
     return;
@@ -254,6 +282,8 @@ function switchMode(next){
   focused=false;
   active=null;
   update();
+  if(mode==='pressure')setView('pressureOverview');
+  else if(leavingPressure)setView('reset');
 }
 $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>switchMode(b.dataset.mode)));
 $$('[data-basis]').forEach(button=>button.addEventListener('click',()=>{
@@ -406,6 +436,10 @@ host.addEventListener('pointerup',event=>{
   pointerStart=null;
   dirty=true;
   if(!wasClick)return;
+  if(mode==='pressure'){
+    pressure?.pick(event);
+    return;
+  }
   const id=pointAt(event);
   if(id)togglePoint(id);
   setHover(event.pointerType==='mouse'?id:null);
@@ -684,9 +718,19 @@ function layoutAnnotations(width,height,moving,landmarks,dimensions){
 
 let cameraFitKey='',lowerRows=0,earSides=false;
 function fitCamera(width,height,rows){
-  const key=`${width}:${height}:${rows}:${earSides}`;
+  const key=`${width}:${height}:${rows}:${earSides}:${mode}`;
   if(key===cameraFitKey)return;
   cameraFitKey=key;
+  if(mode==='pressure'){
+    const vertical=Math.max(345,240*height/Math.max(width-36,120));
+    const horizontal=vertical*width/height;
+    camera.left=-horizontal/2;
+    camera.right=horizontal/2;
+    camera.top=vertical/2-4;
+    camera.bottom=-vertical/2-4;
+    camera.updateProjectionMatrix();
+    return;
+  }
   const rail=railLayout(width);
   const reserve=rail.margin+rail.column+rail.gap;
   const modelWidth=Math.max(120,width-(earSides&&rail.compact?170:reserve*(rail.compact?1:2)));
@@ -711,7 +755,7 @@ function resize(){
   projected.clear();
   dirty=true;
 }
-function setView(name){
+function setView(name, point){
   if(!camera)return;
   setHover(null);
   const target=new THREE.Vector3(0,227,-2);
@@ -723,12 +767,16 @@ function setView(name){
     back:[0,0,-720],
     top:[0,720,10],
     oblique:[-470,145,550],
-    reset:[-250,55,720]
+    reset:mode==='pressure'?[-550,105,530]:[-250,55,720],
+    pressureOverview:[-550,105,530],
+    pressureEar:[-720,0,0],
+    pressurePoint:point?.clone().sub(target).normalize().multiplyScalar(720).toArray()
   };
+  if(name==='pressureEar')target.set(0,232,0);
   tween={
     start:performance.now(),duration:reducedMotion?0:650,
     from:camera.position.clone(),to:target.clone().add(vec(offsets[name])),
-    fromTarget:controls.target.clone(),toTarget:target,fromZoom:camera.zoom
+    fromTarget:controls.target.clone(),toTarget:target,fromZoom:camera.zoom,toZoom:name==='pressureEar'?1.9:1
   };
   $$('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===name));
   dirty=true;
@@ -741,7 +789,7 @@ function animate(time){
     const eased=1-Math.pow(1-t,3);
     camera.position.lerpVectors(tween.from,tween.to,eased);
     controls.target.lerpVectors(tween.fromTarget,tween.toTarget,eased);
-    camera.zoom=THREE.MathUtils.lerp(tween.fromZoom,1,eased);
+    camera.zoom=THREE.MathUtils.lerp(tween.fromZoom,tween.toZoom,eased);
     camera.updateProjectionMatrix();
     if(t===1)tween=null;
     dirty=true;
@@ -752,6 +800,12 @@ function animate(time){
   if(!dirty)return;
   const width=stage.clientWidth,height=stage.clientHeight;
   camera.updateMatrixWorld();
+  if(mode==='pressure'){
+    fitCamera(width,height,0);
+    renderer.render(scene,camera);
+    dirty=false;
+    return;
+  }
   const moving=Boolean(tween||pointerStart?.dragged||labelsResumeAt);
   const direction=camera.getWorldDirection(new THREE.Vector3());
   if(!moving){
@@ -798,8 +852,12 @@ async function init(){
     if(data.neckCap){const positions=[],center=[0,94,0];for(let i=0;i<data.neckCap.length-1;i++)positions.push(...center,...data.neckCap[i],...data.neckCap[i+1]);const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.computeVertexNormals();const m=material.clone();m.clippingPlanes=[];scene.add(new THREE.Mesh(g,m));}
     scene.add(new THREE.HemisphereLight(0xffffff,0xc3c6ce,1.6));const key=new THREE.DirectionalLight(0xffffff,3.1);key.position.set(-220,530,400);scene.add(key);const fill=new THREE.DirectionalLight(0xe6edff,.8);fill.position.set(300,180,220);scene.add(fill);const rim=new THREE.DirectionalLight(0xffffff,1.7);rim.position.set(-100,430,-350);scene.add(rim);
     buildUI();createMeasurements();createAnnotations();
+    pressure=setupPressure({scene,mesh,camera,host,onChange:()=>{dirty=true;},showView:setView});
     if(mode==='industries'&&currentCase)resetIndustryMeasurements();
-    else update();
+    else {
+      update();
+      if(mode==='pressure')setView('pressureOverview');
+    }
     resize();new ResizeObserver(resize).observe(stage);$('#loading').classList.add('done');$('#loading').setAttribute('aria-hidden','true');requestAnimationFrame(animate);
     window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);controls.dispose();renderer.dispose();},{once:true});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('done');$('#loading').classList.add('failed');$('#loading-text').textContent='三维显示已中断，请重新载入';$('#retry').hidden=false;});
   }catch(error){console.error(error);$('#loading').classList.add('failed');$('#loading-text').textContent='头模未能载入，请重试';$('#retry').hidden=false;}

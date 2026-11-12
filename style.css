@@ -251,3 +251,33 @@ dialog{width:min(610px,calc(100vw - 32px));max-height:84svh;padding:0;border:1px
 #industry-basis { margin:6px 0 5px; }
 #measurement-basis-note { margin:0 0 8px; }
 .project-reference { margin-top:2px; color:#63758c; }
+
+.mode-tabs { gap:clamp(12px,1.75vw,24px); }
+.mode-tabs button { font-size:14px; }
+.pressure-mode #labels, .pressure-mode #leaders, .pressure-mode #dimensions { display:none; }
+.pressure-heading h1 { margin:1px 0 6px; color:#344968; font-size:18px; font-weight:650; }
+.pressure-heading p { margin:0; color:#5a6c84; font-size:12px; line-height:1.6; }
+.pressure-layers { display:flex; gap:5px; flex-wrap:wrap; margin:16px 0; }
+.pressure-layers button { padding:7px 9px; border:1px solid transparent; border-radius:6px; color:#53667e; font-size:11px; }
+.pressure-layers button[aria-pressed=true] { border-color:#dce5f3; background:#edf2fa; color:#355782; }
+.pressure-legend { display:grid; gap:6px; padding:13px 0; border-block:1px solid #e1e6ed; }
+.pressure-legend-label { display:flex; justify-content:space-between; gap:6px; font-size:11px; color:#52647d; }
+.pressure-legend-label strong { font-weight:600; color:#344968; }
+.pressure-gradient { height:7px; border-radius:8px; margin-bottom:5px; box-shadow:inset 0 0 0 1px #10224910; }
+.pressure-gradient-head { background:linear-gradient(to right,#dfedf9,#82afd6,#183b74); }
+.pressure-gradient-ear { background:linear-gradient(to right,#f0e4fb,#b088cc,#512c78); }
+.pressure-legend p { margin:4px 0 0; font-size:11px; line-height:1.65; color:#5a6c84; }
+.pressure-focus { display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 12px; margin-top:12px; border:1px solid #e5dced; border-radius:8px; background:#f4eff8; color:#593d75; font-size:12px; }
+.pressure-focus:hover { background:#eee6f5; }
+#pressure-details, .pressure-references { margin-top:13px; }
+.pressure-markers { display:flex; align-items:center; gap:6px; margin:5px 0 8px; color:#52647d; font-size:11px; }
+.pressure-markers input { margin:0; accent-color:#5e83c6; }
+#pressure-sample { width:100%; padding:6px 7px; border:1px solid #dbe3ec; border-radius:6px; background:#fff; color:#405674; font-size:12px; }
+.pressure-value { display:grid; grid-template-columns:1fr auto; gap:5px 8px; margin-top:9px; padding:10px; border:1px solid #e0e6ef; border-radius:7px; background:#fff; color:#405674; font-size:12px; }
+.pressure-value span { color:#5f7088; font-size:11px; }
+.pressure-references a { color:#4e6da0; text-underline-offset:2px; }
+@media(max-width:760px){
+  .workspace:has(.pressure-mode) { --stage-height:clamp(300px,47svh,440px); }
+  .workspace:has(.pressure-mode) .measure-panel { margin:0 18px 22px; }
+  .pressure-heading h1 { font-size:16px; }
+}
