@@ -1,95 +1,45 @@
+// Industry comparison follows the 2026-11-10 workbook. Source-only findings stay separate.
 export const industries = [
-  {
-    "id": "industry0",
-    "name": "制帽",
-    "brands": "Stetson、Franzéns",
-    "color": "#72998d",
-    "projects": [
-      "circumference"
-    ]
-  },
-  {
-    "id": "industry1",
-    "name": "摩托车头盔",
-    "brands": "SHOEI",
-    "color": "#7892a9",
-    "projects": [
-      "circumference"
-    ]
-  },
-  {
-    "id": "industry2",
-    "name": "防弹头盔",
-    "brands": "Gentex",
-    "color": "#b58b65",
-    "projects": [
-      "circumference",
-      "length",
-      "breadth"
-    ]
-  },
-  {
-    "id": "industry3",
-    "name": "医疗防护帽",
-    "brands": "ATO FORM",
-    "color": "#8b83ae",
-    "projects": [
-      "circumference",
-      "earLength",
-      "earBreadth"
-    ]
-  },
-  {
-    "id": "industry4",
-    "name": "脑电帽",
-    "brands": "Brain Products",
-    "color": "#b38d9c",
-    "projects": [
-      "circumference"
-    ]
-  },
-  {
-    "id": "industry5",
-    "name": "颅形矫形器",
-    "brands": "Orthomerica",
-    "color": "#7b989d",
-    "projects": [
-      "circumference"
-    ]
-  },
-  {
-    "id": "industry6",
-    "name": "头面部压力衣",
-    "brands": "Jobskin",
-    "color": "#9d9778",
-    "projects": [
-      "circumference",
-      "earLength"
-    ]
-  },
-  {
-    "id": "industry7",
-    "name": "VR头显",
-    "brands": "HTC VIVE、Varjo",
-    "color": "#b19960",
-    "projects": [
-      "pupilDistance"
-    ]
-  },
-  {
-    "id": "industry8",
-    "name": "呼吸防护器研发",
-    "brands": "NIOSH",
-    "color": "#7e96ac",
-    "projects": [
-      "circumference",
-      "length",
-      "breadth",
-      "coronal",
-      "faceBreadth",
-      "jawBreadth",
-      "noseBreadth",
-      "pupilDistance"
-    ]
-  }
+  {id:'stetson',name:'成品帽选码',brands:'Stetson',color:'#72998d',projects:['circumference'],
+    audit:'品牌按实际帽带佩戴位置量头围，通常在额头中部、耳上少许；三维头围是统一示意。',source:'https://stetson.com/pages/page-fit-guide'},
+  {id:'franzens',name:'硬质礼帽定制',brands:'Franzéns',color:'#819781',projects:['circumference'],
+    audit:'原流程还采集佩戴位置的局部轮廓；无头型仪时，可用软尺并补正侧照片。局部轮廓和照片不是单条标准尺寸。',source:'https://www.kau.se/files/2025-09/Measuring%20information%20for%20your%20doctoral%20hat.pdf#page=3'},
+  {id:'shoei-size',name:'摩托车头盔选码',brands:'SHOEI',color:'#7892a9',projects:['circumference'],
+    audit:'品牌量带走眉上和耳上约 2 cm，经后脑突出部。头围用于初步选码，仍需试戴。',source:'https://www.shoei.com/support/howtouse/wear.html'},
+  {id:'shoei-pfs',name:'摩托车头盔内衬适配',brands:'SHOEI PFS',color:'#6486ae',projects:['circumference','length','breadth'],
+    audit:'官方 PFS 还采集头高。Excel 未列入头高，因此这里保留头围、头长和头宽三项；厂商用专用量具调整内衬。',source:'https://shoei-helmets.com/technology/personal-fitting-system.html'},
+  {id:'gentex',name:'防弹头盔',brands:'Gentex',color:'#b58b65',projects:['circumference','length','breadth'],
+    audit:'Excel 列出长、宽、围。所核对的 FAST SF 公开选码入口以头围为主，未核实该型号把头长、头宽列为用户选码输入。',source:'https://shop.gentexcorp.com/ops-core-fast-sf-next-generation-headborne-system/'},
+  {id:'ato',name:'定制康复防护帽',brands:'ATO FORM Starlight',color:'#8b83ae',projects:['circumference','earLength','earBreadth'],
+    audit:'原表还含 B 前后跨顶弧、C 左右跨顶弧、D 下巴弧、耳位及选配尺寸。C、D 从头围基准线起止，不能直接套成以耳屏点为端点的标准弧。',source:'https://ato-form.com/pdf/ma/en/af-dimension-sheet-for-made-to-measure-head-protection.pdf#page=1'},
+  {id:'brain',name:'脑电帽',brands:'Brain Products',color:'#b38d9c',projects:['circumference'],
+    audit:'头围用于选码。定位 Cz 时另用鼻根至枕外隆突及双侧耳前点的跨顶弧；必要时用 CapTrak 记录电极坐标。两条定位弧不能直接套用本站标准弧。',source:'https://pressrelease.brainproducts.com/tms-eeg/'},
+  {id:'star',name:'定制颅形矫形器',brands:'Orthomerica STAR',color:'#7b989d',projects:['circumference','length','breadth'],
+    audit:'订单还要求扫描或取模，头围、AP 前后长和 ML 左右宽在针织头套外各测三次。三维长宽按统一定义示意，厂商端点按其操作说明。',source:'https://orthomerica.com/download/741/?tmstv=1755377693'},
+  {id:'job-band',name:'定制压力头带',brands:'Jobskin PO 0017',color:'#9d9778',projects:['circumference'],
+    audit:'英版订单表要求 5 号眉水平围度及 11 号经耳至颈后的斜向围度。Excel 只列头围，图中未将 11 号画成另一条水平头围。',source:'https://www.jobskin.co.uk/images/pictures/downloads/pdf-files/premium-original/jsifu289-v7-premium-original-head-of-062025-electronic.pdf#page=3'},
+  {id:'job-mask',name:'定制压力面罩与下巴延伸领',brands:'Jobskin · 按款选测',color:'#ae8b76',projects:['circumference','earLength'],
+    audit:'Excel 合列两项供比较。厂商按款选择，另有经头顶和下巴的围度、颈围或面部尺寸等；不能理解为每款都测同一套。',source:'https://www.jobskin.co.uk/images/pictures/downloads/pdf-files/premium-original/jsifu289-v7-premium-original-head-of-062025-electronic.pdf#page=3'},
+  {id:'vr-optics',name:'VR 头显光学适配',brands:'HTC VIVE、Varjo',color:'#b19960',projects:['pupilDistance'],
+    audit:'瞳孔间距用于镜片对位。不同型号的机械调节或自动调节方式不同，光学适配资料未把头带调节当作尺寸采集项目。',source:'https://support.varjo.com/hc/en-us/adjusting-the-headset-lenses'},
+  {id:'bigscreen',name:'VR 面垫定制',brands:'Bigscreen Beyond · 2023',color:'#a583ab',projects:['pupilDistance'],
+    audit:'2023 年原厂案例同时采集面部深度形状和瞳距。面扫是连续曲面数据，不能用一条测量线表示。',source:'https://store.bigscreenvr.com/en-ca/blogs/beyond/bigscreen-beyond-development-update-2'},
+  {id:'niosh',name:'呼吸防护器研发',brands:'NIOSH 人体测量调查',color:'#7e96ac',projects:['circumference','length','breadth','coronal','faceBreadth','jawBreadth','noseBreadth','noseHeight','faceLength','pupilDistance'],
+    audit:'三维展示 Excel 所列十项。调查原文还含额弧、颏弧等尺寸；原文鼻部相关长度和 Menton–Sellion 面长的端点与本站国标鼻高、形态面长不直接等同。',source:'https://stacks.cdc.gov/view/cdc/181482/cdc_181482_DS1.pdf'},
+  {id:'health',name:'健康监测',brands:'WS/T 424—2013',color:'#7993a3',projects:['circumference'],
+    audit:'按 WS/T 424—2013 第 4.4 条，从右侧眉弓上缘附近经枕骨粗隆最高处绕头一周。此场景是人体测量流程，没有对应佩戴产品。',source:'https://www.nhc.gov.cn/ewebeditor/uploadfile/2013/08/20130808141055922.pdf'},
+  {id:'jon-renau',name:'假发帽底选码',brands:'Jon Renau',color:'#72998d',supplemental:true,projects:[],
+    measurement:'沿发际线量头部周长、耳上发际线跨头顶弧长，以及前发际线至后颈发际线的弧长。',
+    audit:'厂商以发际线和自行定义的头顶参考点定位。三项均按原厂图查看。',source:'https://jonrenau.com/blog/wig-cap-designs/'},
+  {id:'wig-cap',name:'假发帽底选码',brands:'EvaWigs 六项测量指南',color:'#72998d',supplemental:true,projects:[],
+    source:'https://www.evawigs.com/blog/wig-cap-size.html'},
+  {id:'resmed',name:'呼吸机面罩选码',brands:'ResMed AirFit F20',color:'#7e96ac',supplemental:true,projects:[],
+    measurement:'从鼻梁至下唇下方凹处的直线距离，可用厂商面罩尺码模板。',
+    audit:'按原厂图核对鼻梁高度及下唇下方的凹点。',source:'https://www.resmed.com/en-us/sleep-health/blog/airfit-f20-how-to-measure-your-ideal-mask-size-at-home/'},
+  {id:'danmar',name:'软壳防护帽定制',brands:'Danmar',color:'#8b83ae',supplemental:true,projects:['circumference'],
+    measurement:'原表含眉水平头围、跨顶弧及按款选测的护面、耳部尺寸。头模仅示意眉水平围线。',
+    audit:'跨顶弧按厂商图的耳上缘、帽体结束位置等定位。耳部与护面项目按选配记录。',source:'https://www.danmarproducts.com/wp-content/uploads/2022/04/custom-helmet-measurement-chart-2022.pdf'},
+  {id:'vision-pro',name:'混合现实眼镜佩戴适配',brands:'Apple Vision Pro',color:'#b19960',supplemental:true,projects:[],
+    measurement:'原厂流程使用面部扫描匹配遮光罩，并在试戴时调节头带。',
+    audit:'原厂说明给出面部扫描与配件选配流程，尺寸栏按流程资料展示。',source:'https://www.apple.com/ca/privacy/docs/Apple_Vision_Pro_Privacy_Overview.pdf'}
 ];

@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f8f8f8"><meta name="description" content="头部测量点、测量项目与行业需求的三维交互对照。">
   <title>头部测量</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='10' ry='13' fill='%23eceef1'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4' fill='none' stroke='%235e83c6' stroke-width='1.5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20261110-crosswalk">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
@@ -13,33 +13,90 @@
   <section class="stage" aria-label="可旋转的三维头部测量示意">
     <div class="stage-top"><span id="scene-summary">头部测量</span><div class="label-options"><button id="label-toggle" aria-pressed="true">名称</button><button id="all-labels" aria-pressed="false">全部名称</button></div></div>
     <div id="scene" tabindex="0" role="img" aria-label="三维头模。拖动旋转，滚轮缩放；方向键旋转，加减号缩放，Home复位。测量点也可在右侧用键盘选择。"></div>
-    <svg id="leaders" aria-hidden="true"></svg><div id="labels"></div><div id="point-targets"></div>
-    <div id="scene-legend" class="scene-legend" aria-label="路径颜色图例"></div>
+    <svg id="leaders" aria-hidden="true"></svg><svg id="dimensions" aria-hidden="true"></svg>
+    <div id="labels"></div><div id="point-tooltip" hidden></div>
     <div id="loading" class="loading" role="status"><span class="loader"></span><span id="loading-text">正在载入头模</span><button id="retry" hidden>重新载入</button></div>
     <div class="stage-bottom"><div class="view-controls" role="group" aria-label="查看方向"><button data-view="front">正面</button><button data-view="side">侧面</button><button data-view="back">背面</button><button data-view="top">顶部</button><span></span><button data-view="reset" aria-label="复位视角">↺</button></div><span class="gesture-hint" id="gesture-hint">拖动旋转 · 滚轮缩放</span></div>
   </section>
-  <aside class="measure-panel" aria-label="测量选择">
+  <aside class="measure-panel" aria-label="测量与案例选择">
     <nav class="mode-tabs" aria-label="选择模式"><button data-mode="points" aria-pressed="false">测量点</button><button data-mode="industries" aria-pressed="true">行业对比</button></nav>
     <div class="panel-scroll">
       <section id="points-pane" hidden>
-        <div class="section-heading"><span>测量点 <small>29 类</small></span><button id="preset" class="text-button">头戴设备方案</button></div>
-        <input id="point-search" class="search" type="search" placeholder="查找测量点 / 代号" aria-label="查找测量点">
-        <div id="point-list" class="point-list"></div>
-        <div class="selection-summary" id="point-summary" aria-live="polite"></div>
+        <div class="section-heading"><span>已选点 <small id="point-count"></small></span><button id="preset" class="text-button">头戴设备方案</button></div>
+        <div id="chosen-points" class="chosen-points"></div>
+        <p id="point-summary" class="empty">点击模型上的点开始测量。</p>
+        <details class="point-picker">
+          <summary>查找测量点</summary>
+          <input id="point-search" class="search" type="search" placeholder="名称或代号" aria-label="查找测量点">
+          <div id="point-list" class="point-list"></div>
+        </details>
       </section>
-      <section id="industries-pane"><div class="section-heading"><span>行业 <small>可多选</small></span><div class="ear-side" role="group" aria-label="单侧项目显示侧"><button data-side="R" aria-pressed="true">右侧</button><button data-side="L" aria-pressed="false">左侧</button></div></div><div id="industry-list"></div></section>
+      <section id="industries-pane" aria-label="行业案例定位">
+        <div class="industry-chart-heading"><h1>行业案例</h1><span>定性定位</span></div>
+        <div class="position-chart">
+          <span class="position-y">佩戴稳定程度 ↑</span>
+          <div id="position-plot" class="position-plot" aria-label="横轴包裹程度，纵轴佩戴稳定程度"></div>
+          <span class="position-x">包裹程度 →</span>
+        </div>
+        <div class="industry-selected" aria-live="polite">
+          <div><h2 id="industry-name"></h2><p id="industry-model"></p></div>
+          <a id="industry-source" class="position-source" target="_blank" rel="noopener noreferrer">原厂资料 ↗</a>
+        </div>
+        <p id="industry-note" class="industry-note" hidden></p>
+      </section>
       <section class="projects-section">
         <div class="section-heading"><span id="projects-title">测量项目</span><span id="project-count" class="count"></span></div>
-        <div id="compare-filters" class="filter-tabs" role="group" aria-label="对比项目范围"><button data-filter="all" aria-pressed="true">全部</button><button data-filter="common" aria-pressed="false">共同</button><button data-filter="difference" aria-pressed="false">差异</button></div>
-        <input id="project-search" class="search" type="search" placeholder="查找项目" aria-label="查找测量项目" hidden>
+        <div id="industry-basis" class="filter-tabs" role="group" aria-label="测量依据" hidden>
+          <button data-basis="folder" aria-pressed="true">文件夹对照</button>
+          <button data-basis="factory" aria-pressed="false">原厂测法</button>
+        </div>
+        <p id="measurement-basis-note" class="industry-note" hidden></p>
+        <div id="industry-ear-side" class="ear-side" role="group" aria-label="受测者的耳侧" hidden><button data-industry-side="R" aria-pressed="true">右耳</button><button data-industry-side="L" aria-pressed="false">左耳</button></div>
         <div id="project-list"></div><p id="empty-message" class="empty" hidden></p>
       </section>
+      <details id="score-method" class="position-disclosure">
+        <summary>坐标怎么评分</summary>
+        <p>每项按 0–4 级评估。主指标占 75%，辅助指标占 25%，加权后换算成 0–100 分。</p>
+        <p><strong>包裹</strong> · 覆盖范围占 75%，接触分布占 25%。从局部到多区评估，测量线条数不计分。</p>
+        <p><strong>稳定</strong> · 固定方式占 75%，贴合适配占 25%。固定从摩擦、弹性带、主动扣合到多向约束，适配从通用、分码、可调到个体定制。</p>
+        <p id="case-score-breakdown"></p>
+        <p id="case-score-reasons" hidden></p>
+        <p>依据产品结构做的定性评分，没有使用实测位移或防护等级。</p>
+      </details>
+      <details id="case-tools" class="position-disclosure">
+        <summary>案例数据</summary>
+        <div class="position-file-actions">
+          <button id="position-add" class="text-button">新增案例</button>
+          <button id="position-edit" class="text-button">编辑当前案例</button>
+          <button id="position-import" class="text-button">导入</button>
+          <button id="position-export" class="text-button">导出</button>
+          <input id="position-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <label class="custom-case-toggle"><input id="position-custom" type="checkbox">显示已关联的自定义案例</label>
+        <p id="position-notice" class="position-notice" role="status" hidden></p>
+      </details>
     </div>
     <div class="detail" aria-live="polite"><button id="detail-name" class="detail-name" title="查看测量说明"></button><div id="detail-type" class="detail-type"></div><p id="detail-route"></p><p id="detail-owners" class="detail-owners"></p></div>
     <div class="panel-bottom"><button id="clear" class="text-button">清空选择</button><button id="info-open" class="text-button">测量说明 ↗</button></div>
   </aside>
   <span id="sr-status" class="sr-only" role="status"></span>
 </main>
-<dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h1 id="info-title">测量说明</h1><button id="info-close" aria-label="关闭测量说明">×</button></div><div class="dialog-scroll"><select id="method-select" aria-label="查看项目说明"></select><div class="method-heading"><h2 id="method-name"></h2><span id="method-tool"></span></div><p id="method-definition"></p><div id="method-points" class="method-points"></div><p id="method-note" class="method-note"></p><p id="method-source" class="method-source"></p><details class="reference"><summary>点位与行业依据</summary><p>测量点与项目编号对应 GB/T 2428—2024 图 A.1、A.2。行业与项目对应用户提供的《各行业头部测量项目对照表》。行业表不含“必测／建议”级别，原头戴设备方案单独保留。</p><p>头围沿用原项目指定的 WS/T 424—2013 操作定义。行业表未区分品牌之间的测量方法差异。</p></details><p class="registration-note">点位与路径为提供的 STL 上的人工示意配准，左右以受测者为准。发缘、瞳孔与需触诊的标志应在实际采集时确认。垂直／投影尺寸按当前头模姿态示意，真人测量需按眼耳平面定位。本页不输出受试者实测数值。</p></div></dialog>
-<script type="module" src="./app.js"></script>
+<dialog id="case-dialog" aria-labelledby="case-title">
+  <form id="case-form">
+    <div class="dialog-header"><h1 id="case-title">新增案例</h1><button id="case-close" type="button" aria-label="关闭">×</button></div>
+    <div class="dialog-scroll case-fields">
+      <label>案例名称<input name="name" maxlength="60" required></label>
+      <label>行业或类别<input name="category" maxlength="40" placeholder="例如：运动头戴设备"></label>
+      <label>关联行业场景<select name="industry" required></select></label>
+      <div class="case-scores"><label>包裹程度（0–100）<input name="x" type="number" min="0" max="100" step="1" required></label><label>佩戴稳定程度（0–100）<input name="y" type="number" min="0" max="100" step="1" required></label></div>
+      <label>包裹程度依据<textarea name="wrap" rows="2" maxlength="500"></textarea></label>
+      <label>佩戴稳定程度依据<textarea name="stability" rows="2" maxlength="500"></textarea></label>
+      <label>资料链接<input name="source" type="url" placeholder="https://…" maxlength="1000"></label>
+      <p id="case-error" class="case-error" role="alert" hidden></p>
+      <div class="case-form-actions"><button id="case-remove" type="button" class="text-button"></button><button class="position-primary" type="submit">保存案例</button></div>
+    </div>
+  </form>
+</dialog>
+<dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h1 id="info-title">测量说明</h1><button id="info-close" aria-label="关闭测量说明">×</button></div><div class="dialog-scroll"><select id="method-select" aria-label="查看项目说明"></select><div class="method-heading"><h2 id="method-name"></h2><span id="method-tool"></span></div><p id="method-definition"></p><div id="method-points" class="method-points"></div><p id="method-crosswalk" class="method-note" hidden></p><p id="method-note" class="method-note"></p><p id="method-source" class="method-source"></p><details class="reference"><summary>点位与行业依据</summary><p>「文件夹对照」按《各行业头部测量项目对照表》取项目，并根据原厂路线补充可对照的项目。编号按 GB/T 2428—2024 图 A.2，点位按图 A.1。「原厂测法」展示该案例的实际路线和与标准的差别。</p><p>头围对应图 A.2 第 1 项，项目约定的围线和两个辅助定位点采用 WS/T 424—2013。</p></details><p class="registration-note">点位与路径为提供的 STL 上的人工示意配准，左右以受测者为准。发缘、瞳孔与需触诊的标志应在实际采集时确认。垂直／投影尺寸按当前头模姿态示意，真人测量需按眼耳平面定位。本页不输出受试者实测数值。</p></div></dialog>
+<script type="module" src="./app.js?v=20261110-wig"></script>
 </body></html>
