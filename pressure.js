@@ -6,10 +6,12 @@ const layers = {
   ear: { name: '右耳周', light: '#f0e4fb', middle: '#b088cc', dark: '#512c78' },
 };
 const neutral = new THREE.Color('#e8e9ec');
-const samples = Object.entries(layers).flatMap(([layer, info]) =>
-  data[layer].map(([id, name, position, pdt]) => ({
-    key: `${layer}:${id}`, id, name, position: new THREE.Vector3(...position), pdt, layer, info,
-  })));
+const samples = Object.keys(layers).flatMap(layer => data[layer].map(([id, name, coordinates, pdt]) => {
+  const position = new THREE.Vector3(...coordinates);
+  const displayPosition = position.clone();
+  if (layer === 'ear') displayPosition.x -= 1.35;
+  return { key: `${layer}:${id}`, id, name, position, displayPosition, pdt, layer };
+}));
 const pointsByKey = new Map(samples.map(point => [point.key, point]));
 
 function palette(layer) {
@@ -42,51 +44,67 @@ function onAuricle(x, y, z) {
   return false;
 }
 
-function withinEarGrid(x, y, z) {
-  const { center: [cy, cz], step } = data.earGrid;
-  const row = (y - cy) / step;
-  const column = (z - cz) / step;
-  if (x > -38 || row > 1.01 || column < -3.01 || column > 2.01) return false;
-  // Lower central cells are absent from Fig. 2, where the pinna interrupts the grid.
-  const bottom = column < -1 ? Math.max(-1, column + 1) : Math.max(-1, -Math.max(0, column));
-  return row >= bottom - 0.01;
-}
-
-function interpolate(points, x, y, z, local) {
+function interpolateHead(x, y, z) {
   let weighted = 0, weightSum = 0, closest = Infinity;
-  const softening = local ? 16 : 81;
-  for (const [, , position, pdt] of points) {
-    const dx = local ? 0 : x - position[0];
+  for (const [, , position, pdt] of data.head) {
+    const dx = x - position[0];
     const dy = y - position[1], dz = z - position[2];
     const distance = dx * dx + dy * dy + dz * dz;
     if (distance < 0.001) return pdt;
     closest = Math.min(closest, distance);
-    const weight = 1 / (distance + softening) ** 2;
+    const weight = 1 / (distance + 81) ** 2;
     weighted += weight * pdt;
     weightSum += weight;
   }
-  return !local && closest > 76 ** 2 ? null : weighted / weightSum;
+  return closest > 76 ** 2 ? null : weighted / weightSum;
 }
 
-export function makePressureColors(positions) {
-  const combined = new Float32Array(positions.length);
-  const headOnly = new Float32Array(positions.length);
-  const earOnly = new Float32Array(positions.length);
-  const headColor = new THREE.Color(), earColor = new THREE.Color();
+export function makeHeadPressureColors(positions) {
+  const colors = new Float32Array(positions.length);
+  const headColor = new THREE.Color();
   for (let i = 0; i < positions.length; i += 3) {
     const x = positions[i], y = positions[i + 1], z = positions[i + 2];
-    const skip = y < 94 || onAuricle(x, y, z);
-    const headValue = skip ? null : interpolate(data.head, x, y, z, false);
-    const earValue = !skip && withinEarGrid(x, y, z) ? interpolate(data.ear, x, y, z, true) : null;
+    const headValue = y < 94 || onAuricle(x, y, z) ? null : interpolateHead(x, y, z);
     if (headValue === null) headColor.copy(neutral);
     else colorFor(headValue, scales.head, headColor);
-    if (earValue === null) earColor.copy(neutral);
-    else colorFor(earValue, scales.ear, earColor);
-    headColor.toArray(headOnly, i);
-    earColor.toArray(earOnly, i);
-    (earValue === null ? headColor : earColor).toArray(combined, i);
+    headColor.toArray(colors, i);
   }
-  return { combined, head: headOnly, ear: earOnly };
+  return colors;
+}
+
+function circleTexture() {
+  const size = 32;
+  const pixels = new Uint8Array(size * size * 4).fill(255);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const radius = Math.hypot(x + .5 - size / 2, y + .5 - size / 2);
+      pixels[(y * size + x) * 4 + 3] = Math.round(255 * THREE.MathUtils.clamp(size / 2 - radius, 0, 1));
+    }
+  }
+  const texture = new THREE.DataTexture(pixels, size, size);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function pointSprites(points, { texture, size, ring, outline, color }) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(points.flatMap(p => p.displayPosition.toArray()), 3));
+  if (!color) {
+    const shade = new THREE.Color();
+    const colors = points.flatMap(p => colorFor(p.pdt, scales[p.layer], shade).toArray());
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  }
+  const common = { map: texture, transparent: true, alphaTest: .12, sizeAttenuation: false, depthWrite: false, toneMapped: false };
+  const group = new THREE.Group();
+  const edge = new THREE.Points(geometry, new THREE.PointsMaterial({ ...common, size: size + ring, color: outline }));
+  const fill = new THREE.Points(geometry, new THREE.PointsMaterial({ ...common, size, color: color ?? '#ffffff', vertexColors: !color }));
+  edge.renderOrder = 3;
+  fill.renderOrder = 4;
+  group.add(edge, fill);
+  group.visible = false;
+  return group;
 }
 
 export function setupPressure({ scene, mesh, camera, host, onChange, showView }) {
@@ -94,6 +112,8 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
   const select = element('pressure-sample');
   const card = element('pressure-value');
   const showPoints = element('pressure-show-points');
+  const headPointsControl = element('pressure-head-points');
+  const labelLayer = element('pressure-ear-labels');
   const originalMaterial = mesh.material;
   const material = originalMaterial.clone();
   material.color.set(0xffffff);
@@ -101,30 +121,48 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
   const pointer = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   const projected = new THREE.Vector3();
-  const marker = new THREE.Mesh(new THREE.SphereGeometry(2, 18, 12), new THREE.MeshBasicMaterial({ color: '#25324b', toneMapped: false }));
-  marker.visible = false;
+  const direction = new THREE.Vector3();
+  const texture = circleTexture();
+  const marker = pointSprites([{displayPosition: new THREE.Vector3()}], {texture, size: 11, ring: 7, outline: '#354565', color: '#fff'});
+  marker.children[0].renderOrder = 5;
+  marker.children[1].renderOrder = 6;
   scene.add(marker);
-  let enabled = false, selected = null, visibleLayer = 'combined', fields;
+  let enabled = false, selected = null, visibleLayer = 'combined', headColors;
   const dots = {};
-  const dotGeometry = new THREE.SphereGeometry(1.05, 10, 8);
-  const dotMaterial = new THREE.MeshBasicMaterial({ color: '#31415b', toneMapped: false });
-  const translation = new THREE.Matrix4();
+  const earLabels = [];
+  const outward = new THREE.Vector3();
+  const center = new THREE.Vector3(0, 224, -1);
+
+  // Lift the display glyph slightly off the surface. Keep the registered position for picking.
+  for (const point of samples) {
+    if (point.layer === 'head') {
+      outward.copy(point.position).sub(center).normalize();
+      point.displayPosition.copy(point.position).addScaledVector(outward, 1.25);
+    }
+  }
 
   for (const [layer, info] of Object.entries(layers)) {
     const group = document.createElement('optgroup');
     group.label = info.name;
     const layerPoints = samples.filter(point => point.layer === layer);
-    const meshDots = new THREE.InstancedMesh(dotGeometry, dotMaterial, layerPoints.length);
-    for (const [index, point] of layerPoints.entries()) {
+    for (const point of layerPoints) {
       const option = document.createElement('option');
       option.value = point.key;
       option.textContent = `${point.id} · ${point.name}`;
       group.append(option);
-      meshDots.setMatrixAt(index, translation.makeTranslation(...point.position.toArray()));
+      if (layer === 'ear') {
+        const label = document.createElement('span');
+        label.textContent = point.id;
+        label.className = 'pressure-ear-label';
+        labelLayer.append(label);
+        earLabels.push({ point, label });
+      }
     }
-    meshDots.visible = false;
-    scene.add(meshDots);
-    dots[layer] = meshDots;
+    const style = layer === 'ear'
+      ? {size: 11, ring: 4, outline: '#625272'}
+      : {size: 5, ring: 3, outline: '#fff', color: '#27436b'};
+    dots[layer] = pointSprites(layerPoints, {texture, ...style});
+    scene.add(dots[layer]);
     select.append(group);
     const scale = scales[layer];
     const digits = layer === 'ear' ? 2 : 0;
@@ -136,19 +174,22 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
   }
 
   function updateDots() {
-    for (const [layer, meshDots] of Object.entries(dots)) {
-      meshDots.visible = enabled && showPoints.checked && (visibleLayer === 'combined' || visibleLayer === layer);
-    }
+    dots.head.visible = enabled && visibleLayer !== 'ear' && showPoints.checked;
+    dots.ear.visible = enabled && visibleLayer !== 'head';
+    headPointsControl.hidden = visibleLayer === 'ear';
+    if (!dots.ear.visible) labelLayer.hidden = true;
   }
 
   function paint() {
     if (!enabled) return;
-    if (!fields) {
-      const colors = makePressureColors(mesh.geometry.getAttribute('position').array);
-      fields = Object.fromEntries(Object.entries(colors).map(([layer, values]) =>
-        [layer, new THREE.BufferAttribute(values, 3)]));
+    if (visibleLayer === 'ear') {
+      mesh.material = originalMaterial;
+      return;
     }
-    mesh.geometry.setAttribute('color', fields[visibleLayer]);
+    if (!headColors) {
+      headColors = new THREE.BufferAttribute(makeHeadPressureColors(mesh.geometry.getAttribute('position').array), 3);
+      mesh.geometry.setAttribute('color', headColors);
+    }
     mesh.material = material;
   }
 
@@ -158,7 +199,8 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
     card.hidden = !point;
     marker.visible = Boolean(enabled && point);
     if (point) {
-      marker.position.copy(point.position);
+      marker.position.copy(point.displayPosition);
+      colorFor(point.pdt, scales[point.layer], marker.children[1].material.color);
       element('pressure-point-name').textContent = `${point.name} · ${point.id}`;
       element('pressure-point-mean').textContent = `${point.pdt.toFixed(point.layer === 'ear' ? 2 : 1)} kPa`;
       element('pressure-point-source').textContent = point.layer === 'head' ? '全头研究 · 样本平均' : '右耳周研究 · 样本平均';
@@ -217,27 +259,43 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
       marker.visible = Boolean(active && selected);
       updateDots();
     },
+    layout(width, height, moving) {
+      // The right-side close-up aligns the labels with the original grid.
+      camera.getWorldDirection(direction);
+      const gridSpacing = 20 * height * camera.zoom / (camera.top - camera.bottom);
+      labelLayer.hidden = !dots.ear.visible || moving || direction.x < .997 || gridSpacing < 31;
+      if (labelLayer.hidden) return;
+      for (const {point, label} of earLabels) {
+        projected.copy(point.displayPosition).project(camera);
+        label.hidden = Math.abs(projected.x) > .97 || Math.abs(projected.y) > .93;
+        label.style.left = `${(projected.x + 1) * width / 2}px`;
+        label.style.top = `${(1 - projected.y) * height / 2}px`;
+        label.classList.toggle('is-selected', point === selected);
+      }
+    },
     pick(event) {
       const box = host.getBoundingClientRect();
       const x = event.clientX - box.left, y = event.clientY - box.top;
       const candidates = [];
       for (const point of samples) {
         if (!inLayer(point)) continue;
-        projected.copy(point.position).project(camera);
+        projected.copy(point.displayPosition).project(camera);
         const dx = (projected.x + 1) * box.width / 2 - x;
         const dy = (1 - projected.y) * box.height / 2 - y;
         const distance = Math.hypot(dx, dy);
         if (distance <= (event.pointerType === 'touch' ? 24 : 18)) {
-          candidates.push({ point, distance, x: projected.x, y: projected.y });
+          const onEarDot = point.layer === 'ear' && distance <= 10;
+          candidates.push({ point, distance, onEarDot });
         }
       }
-      candidates.sort((a, b) => a.distance - b.distance || Number(b.point.layer === 'ear') - Number(a.point.layer === 'ear'));
+      candidates.sort((a, b) => Number(b.onEarDot) - Number(a.onEarDot) || a.distance - b.distance);
       for (const candidate of candidates) {
-        pointer.set(candidate.x, candidate.y);
+        const point = candidate.point;
+        projected.copy(point.position).project(camera);
+        pointer.set(projected.x, projected.y);
         raycaster.setFromCamera(pointer, camera);
         const hit = raycaster.intersectObject(mesh, false).find(result => result.point.y >= 94);
         if (!hit || hit.point.distanceTo(candidate.point.position) > 4) continue;
-        const point = candidate.point;
         // Where both papers use the same attachment landmark, pick the visible layer.
         const ear = point.layer === 'head' && visibleLayer === 'combined'
           ? candidates.find(other => other.point.layer === 'ear' && other.point.position.distanceTo(point.position) < 1)?.point : null;

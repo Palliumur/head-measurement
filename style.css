@@ -255,6 +255,14 @@ dialog{width:min(610px,calc(100vw - 32px));max-height:84svh;padding:0;border:1px
 .mode-tabs { gap:clamp(12px,1.75vw,24px); }
 .mode-tabs button { font-size:14px; }
 .pressure-mode #labels, .pressure-mode #leaders, .pressure-mode #dimensions { display:none; }
+#pressure-ear-labels { position:absolute; inset:0; z-index:1; pointer-events:none; }
+.pressure-ear-label {
+  position:absolute; transform:translate(-50%,calc(-100% - 9px));
+  color:#382c49; background:#fffffff2; border:1px solid #e9e1ee;
+  border-radius:5px; padding:1px 4px; font-size:11px; line-height:13px;
+  font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.pressure-ear-label.is-selected { background:#553671; color:#fff; border-color:#553671; }
 .pressure-heading h1 { margin:1px 0 6px; color:#344968; font-size:18px; font-weight:650; }
 .pressure-heading p { margin:0; color:#5a6c84; font-size:12px; line-height:1.6; }
 .pressure-layers { display:flex; gap:5px; flex-wrap:wrap; margin:16px 0; }
@@ -270,7 +278,7 @@ dialog{width:min(610px,calc(100vw - 32px));max-height:84svh;padding:0;border:1px
 .pressure-focus { display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 12px; margin-top:12px; border:1px solid #e5dced; border-radius:8px; background:#f4eff8; color:#593d75; font-size:12px; }
 .pressure-focus:hover { background:#eee6f5; }
 #pressure-details, .pressure-references { margin-top:13px; }
-.pressure-markers { display:flex; align-items:center; gap:6px; margin:5px 0 8px; color:#52647d; font-size:11px; }
+.pressure-markers { display:flex; align-items:center; gap:7px; margin:13px 0 0; color:#52647d; font-size:12px; cursor:pointer; }
 .pressure-markers input { margin:0; accent-color:#5e83c6; }
 #pressure-sample { width:100%; padding:6px 7px; border:1px solid #dbe3ec; border-radius:6px; background:#fff; color:#405674; font-size:12px; }
 .pressure-value { display:grid; grid-template-columns:1fr auto; gap:5px 8px; margin-top:9px; padding:10px; border:1px solid #e0e6ef; border-radius:7px; background:#fff; color:#405674; font-size:12px; }

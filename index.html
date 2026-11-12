@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f8f8f8"><meta name="description" content="头部测量点、测量项目与行业需求的三维交互对照。">
   <title>头部测量</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='10' ry='13' fill='%23eceef1'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4' fill='none' stroke='%235e83c6' stroke-width='1.5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=pressure-1">
+  <link rel="stylesheet" href="./style.css?v=pressure-points-1">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
@@ -15,6 +15,7 @@
     <div id="scene" tabindex="0" role="img" aria-label="三维头模。拖动旋转，滚轮缩放；方向键旋转，加减号缩放，Home复位。测量点也可在右侧用键盘选择。"></div>
     <svg id="leaders" aria-hidden="true"></svg><svg id="dimensions" aria-hidden="true"></svg>
     <div id="labels"></div><div id="point-tooltip" hidden></div>
+    <div id="pressure-ear-labels" aria-hidden="true" hidden></div>
     <div id="loading" class="loading" role="status"><span class="loader"></span><span id="loading-text">正在载入头模</span><button id="retry" hidden>重新载入</button></div>
     <div class="stage-bottom"><div class="view-controls" role="group" aria-label="查看方向"><button data-view="front">正面</button><button data-view="side">侧面</button><button data-view="back">背面</button><button data-view="top">顶部</button><span></span><button data-view="reset" aria-label="复位视角">↺</button></div><span class="gesture-hint" id="gesture-hint">拖动旋转 · 滚轮缩放</span></div>
   </section>
@@ -47,12 +48,12 @@
           <div class="pressure-legend-label" data-pressure-legend="ear"><strong>右耳周</strong><span id="pressure-ear-range"></span></div>
           <div class="pressure-gradient pressure-gradient-ear" data-pressure-legend="ear" aria-hidden="true"></div>
           <div class="pressure-legend-label"><span>更敏感</span><span>较不敏感</span></div>
-          <p>两项研究各用自己的色阶。灰色表示缺少测点覆盖。</p>
+          <p>全头热图和右耳周测点各用自己的色阶。</p>
         </div>
         <button class="pressure-focus" data-pressure-view="pressureEar">查看右耳周 <span aria-hidden="true">↗</span></button>
+        <label class="pressure-markers" id="pressure-head-points"><input type="checkbox" id="pressure-show-points">显示全头 76 个测点</label>
         <details id="pressure-details" class="position-disclosure">
           <summary>查看测点数值</summary>
-          <label class="pressure-markers"><input type="checkbox" id="pressure-show-points">在头模上显示测点</label>
           <select id="pressure-sample" aria-label="选择压力测点"><option value="">选择测点</option></select>
         </details>
         <div id="pressure-value" class="pressure-value" aria-live="polite" hidden>
@@ -61,7 +62,7 @@
         </div>
         <details class="position-disclosure pressure-references">
           <summary>研究与测法</summary>
-          <p>压力不适阈值（PDT）是实验中开始感到不适时的压力。彩色曲面为测点间的估计分布，点选查看论文样本均值。</p>
+          <p>压力不适阈值（PDT）是实验中开始感到不适时的压力。全头热图为测点间的估计分布，右耳周圆点对应原研究的测点。点选查看样本均值。</p>
           <p><a href="https://doi.org/10.1016/j.apergo.2021.103548" target="_blank" rel="noopener noreferrer">全头 · Shah 与 Luximon，2021 ↗</a><br>218 人，76 点。表 2 的男女组均值按人数等权合并。</p>
           <p><a href="https://doi.org/10.1016/j.apergo.2025.104483" target="_blank" rel="noopener noreferrer">右耳周 · Du 等人，2025 ↗</a><br>197 人，右侧 16 点。采用表 6 的整体均值，测点以右耳上附着点配准。</p>
         </details>
@@ -133,5 +134,5 @@
   </form>
 </dialog>
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h1 id="info-title">测量说明</h1><button id="info-close" aria-label="关闭测量说明">×</button></div><div class="dialog-scroll"><select id="method-select" aria-label="查看项目说明"></select><div class="method-heading"><h2 id="method-name"></h2><span id="method-tool"></span></div><p id="method-definition"></p><div id="method-points" class="method-points"></div><p id="method-crosswalk" class="method-note" hidden></p><p id="method-note" class="method-note"></p><p id="method-source" class="method-source"></p><details class="reference"><summary>点位与行业依据</summary><p>「文件夹对照」按《各行业头部测量项目对照表》取项目，并根据原厂路线补充可对照的项目。编号按 GB/T 2428—2024 图 A.2，点位按图 A.1。「原厂测法」展示该案例的实际路线和与标准的差别。</p><p>头围对应图 A.2 第 1 项，项目约定的围线和两个辅助定位点采用 WS/T 424—2013。</p></details><p class="registration-note">点位与路径为提供的 STL 上的人工示意配准，左右以受测者为准。发缘、瞳孔与需触诊的标志应在实际采集时确认。垂直／投影尺寸按当前头模姿态示意，真人测量需按眼耳平面定位。本页不输出受试者实测数值。</p></div></dialog>
-<script type="module" src="./app.js?v=pressure-1"></script>
+<script type="module" src="./app.js?v=pressure-points-1"></script>
 </body></html>
