@@ -1,15 +1,15 @@
 import * as THREE from 'three';
-import data from './pressure-data.js?v=pressure-1';
+import data from './pressure-data.js?v=pressure-ear-2';
 
 const layers = {
   head: { name: '全头', light: '#dfedf9', middle: '#82afd6', dark: '#183b74' },
-  ear: { name: '右耳周', light: '#f0e4fb', middle: '#b088cc', dark: '#512c78' },
+  ear: { name: '右耳周', light: '#f8a39a', middle: '#cc4046', dark: '#650d26' },
 };
 const neutral = new THREE.Color('#e8e9ec');
 const samples = Object.keys(layers).flatMap(layer => data[layer].map(([id, name, coordinates, pdt]) => {
   const position = new THREE.Vector3(...coordinates);
   const displayPosition = position.clone();
-  if (layer === 'ear') displayPosition.x -= 1.35;
+  if (layer === 'ear') displayPosition.x -= 1.7;
   return { key: `${layer}:${id}`, id, name, position, displayPosition, pdt, layer };
 }));
 const pointsByKey = new Map(samples.map(point => [point.key, point]));
@@ -72,13 +72,18 @@ export function makeHeadPressureColors(positions) {
   return colors;
 }
 
-function circleTexture() {
-  const size = 32;
+function circleTexture(soft = false) {
+  const size = 48;
   const pixels = new Uint8Array(size * size * 4).fill(255);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const radius = Math.hypot(x + .5 - size / 2, y + .5 - size / 2);
-      pixels[(y * size + x) * 4 + 3] = Math.round(255 * THREE.MathUtils.clamp(size / 2 - radius, 0, 1));
+      const fraction = radius / (size / 2);
+      const opacity = soft
+        ? .55 * (1 - THREE.MathUtils.smoothstep(fraction, .22, .39))
+          + .45 * (1 - THREE.MathUtils.smoothstep(fraction, .12, 1))
+        : THREE.MathUtils.clamp(size / 2 - radius, 0, 1);
+      pixels[(y * size + x) * 4 + 3] = Math.round(255 * opacity);
     }
   }
   const texture = new THREE.DataTexture(pixels, size, size);
@@ -88,7 +93,7 @@ function circleTexture() {
   return texture;
 }
 
-function pointSprites(points, { texture, size, ring, outline, color }) {
+function pointSprites(points, { texture, size, ring = 0, outline, color, alphaTest = .12 }) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points.flatMap(p => p.displayPosition.toArray()), 3));
   if (!color) {
@@ -96,13 +101,16 @@ function pointSprites(points, { texture, size, ring, outline, color }) {
     const colors = points.flatMap(p => colorFor(p.pdt, scales[p.layer], shade).toArray());
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   }
-  const common = { map: texture, transparent: true, alphaTest: .12, sizeAttenuation: false, depthWrite: false, toneMapped: false };
+  const common = { map: texture, transparent: true, alphaTest, sizeAttenuation: false, depthWrite: false, toneMapped: false };
   const group = new THREE.Group();
-  const edge = new THREE.Points(geometry, new THREE.PointsMaterial({ ...common, size: size + ring, color: outline }));
+  if (ring) {
+    const edge = new THREE.Points(geometry, new THREE.PointsMaterial({ ...common, size: size + ring, color: outline }));
+    edge.renderOrder = 3;
+    group.add(edge);
+  }
   const fill = new THREE.Points(geometry, new THREE.PointsMaterial({ ...common, size, color: color ?? '#ffffff', vertexColors: !color }));
-  edge.renderOrder = 3;
   fill.renderOrder = 4;
-  group.add(edge, fill);
+  group.add(fill);
   group.visible = false;
   return group;
 }
@@ -123,6 +131,7 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
   const projected = new THREE.Vector3();
   const direction = new THREE.Vector3();
   const texture = circleTexture();
+  const earTexture = circleTexture(true);
   const marker = pointSprites([{displayPosition: new THREE.Vector3()}], {texture, size: 11, ring: 7, outline: '#354565', color: '#fff'});
   marker.children[0].renderOrder = 5;
   marker.children[1].renderOrder = 6;
@@ -159,9 +168,9 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
       }
     }
     const style = layer === 'ear'
-      ? {size: 11, ring: 4, outline: '#625272'}
-      : {size: 5, ring: 3, outline: '#fff', color: '#27436b'};
-    dots[layer] = pointSprites(layerPoints, {texture, ...style});
+      ? {texture: earTexture, size: 29, alphaTest: .018}
+      : {texture, size: 5, ring: 3, outline: '#fff', color: '#27436b'};
+    dots[layer] = pointSprites(layerPoints, style);
     scene.add(dots[layer]);
     select.append(group);
     const scale = scales[layer];
@@ -200,6 +209,7 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
     marker.visible = Boolean(enabled && point);
     if (point) {
       marker.position.copy(point.displayPosition);
+      marker.children[0].material.color.set(point.layer === 'ear' ? '#752b3d' : '#354565');
       colorFor(point.pdt, scales[point.layer], marker.children[1].material.color);
       element('pressure-point-name').textContent = `${point.name} · ${point.id}`;
       element('pressure-point-mean').textContent = `${point.pdt.toFixed(point.layer === 'ear' ? 2 : 1)} kPa`;
@@ -262,9 +272,11 @@ export function setupPressure({ scene, mesh, camera, host, onChange, showView })
     layout(width, height, moving) {
       // The right-side close-up aligns the labels with the original grid.
       camera.getWorldDirection(direction);
-      const gridSpacing = 20 * height * camera.zoom / (camera.top - camera.bottom);
-      labelLayer.hidden = !dots.ear.visible || moving || direction.x < .997 || gridSpacing < 31;
+      const step = Math.min(data.earGrid.horizontalStep, data.earGrid.verticalStep);
+      const gridSpacing = step * height * camera.zoom / (camera.top - camera.bottom);
+      labelLayer.hidden = !dots.ear.visible || moving || direction.x < .997 || gridSpacing < 23;
       if (labelLayer.hidden) return;
+      labelLayer.classList.toggle('compact', gridSpacing < 35);
       for (const {point, label} of earLabels) {
         projected.copy(point.displayPosition).project(camera);
         label.hidden = Math.abs(projected.x) > .97 || Math.abs(projected.y) > .93;

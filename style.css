@@ -257,12 +257,15 @@ dialog{width:min(610px,calc(100vw - 32px));max-height:84svh;padding:0;border:1px
 .pressure-mode #labels, .pressure-mode #leaders, .pressure-mode #dimensions { display:none; }
 #pressure-ear-labels { position:absolute; inset:0; z-index:1; pointer-events:none; }
 .pressure-ear-label {
-  position:absolute; transform:translate(-50%,calc(-100% - 9px));
-  color:#382c49; background:#fffffff2; border:1px solid #e9e1ee;
+  position:absolute; transform:translate(-50%,calc(-100% - 8px));
+  color:#602c37; background:#fffffff2; border:1px solid #f0dcdd;
   border-radius:5px; padding:1px 4px; font-size:11px; line-height:13px;
   font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap;
 }
-.pressure-ear-label.is-selected { background:#553671; color:#fff; border-color:#553671; }
+.pressure-ear-label.is-selected { background:#752b3d; color:#fff; border-color:#752b3d; }
+#pressure-ear-labels.compact .pressure-ear-label {
+  transform:translate(-50%,calc(-100% - 6px)); padding:0 2px; font-size:9px; line-height:11px;
+}
 .pressure-heading h1 { margin:1px 0 6px; color:#344968; font-size:18px; font-weight:650; }
 .pressure-heading p { margin:0; color:#5a6c84; font-size:12px; line-height:1.6; }
 .pressure-layers { display:flex; gap:5px; flex-wrap:wrap; margin:16px 0; }
@@ -273,10 +276,10 @@ dialog{width:min(610px,calc(100vw - 32px));max-height:84svh;padding:0;border:1px
 .pressure-legend-label strong { font-weight:600; color:#344968; }
 .pressure-gradient { height:7px; border-radius:8px; margin-bottom:5px; box-shadow:inset 0 0 0 1px #10224910; }
 .pressure-gradient-head { background:linear-gradient(to right,#dfedf9,#82afd6,#183b74); }
-.pressure-gradient-ear { background:linear-gradient(to right,#f0e4fb,#b088cc,#512c78); }
+.pressure-gradient-ear { background:linear-gradient(to right,#f8a39a,#cc4046,#650d26); }
 .pressure-legend p { margin:4px 0 0; font-size:11px; line-height:1.65; color:#5a6c84; }
-.pressure-focus { display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 12px; margin-top:12px; border:1px solid #e5dced; border-radius:8px; background:#f4eff8; color:#593d75; font-size:12px; }
-.pressure-focus:hover { background:#eee6f5; }
+.pressure-focus { display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 12px; margin-top:12px; border:1px solid #efdedd; border-radius:8px; background:#faf0ef; color:#793746; font-size:12px; }
+.pressure-focus:hover { background:#f6e5e4; }
 #pressure-details, .pressure-references { margin-top:13px; }
 .pressure-markers { display:flex; align-items:center; gap:7px; margin:13px 0 0; color:#52647d; font-size:12px; cursor:pointer; }
 .pressure-markers input { margin:0; accent-color:#5e83c6; }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { catalog, factoryCrosswalk, originalPreset, resolvePoints } from './catalog.js?v=20261110-wig';
 import { setupPosition } from './position.js?v=20261110-wig';
-import { setupPressure } from './pressure.js?v=pressure-points-1';
+import { setupPressure } from './pressure.js?v=pressure-ear-2';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const stage=$('.stage'),host=$('#scene'),labelsHost=$('#labels'),leaders=$('#leaders');
